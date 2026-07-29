@@ -1,165 +1,146 @@
 # RepoForge
 
-RepoForge è uno strumento da riga di comando scritto in Bash che permette di
-configurare e popolare un repository GitHub in modo massivo partendo da file
-YAML versionabili.
+RepoForge sincronizza la configurazione di un repository GitHub partendo da
+file YAML versionabili. Label, milestone e issue possono essere dichiarate nel
+repository insieme alle relative relazioni, quindi validate e applicate con un
+solo comando.
 
-Utilizza [GitHub CLI](https://cli.github.com/) per creare e sincronizzare:
+L'unica interfaccia pubblica dell'applicazione è `repoforge.sh`. Gli script
+interni non devono essere richiamati direttamente: servono a mantenere
+l'applicazione modulare e a testarne separatamente i componenti.
 
-- impostazioni del repository;
+## Funzionalità
+
+RepoForge gestisce:
+
 - label;
 - milestone;
 - issue;
+- stato aperto o chiuso delle issue;
 - assegnatari;
-- collaboratori e team;
-- regole di protezione dei branch;
-- funzionalità opzionali come Wiki, Discussions e Projects.
+- riferimenti delle issue a label e milestone;
+- dipendenze native GitHub tra issue;
+- controllo dell'autenticazione e dei permessi;
+- validazione preventiva della configurazione;
+- dry run senza modifiche remote;
+- riepilogo conclusivo della sincronizzazione.
 
-L'obiettivo è trattare la configurazione operativa di un repository come codice:
-i file YAML possono essere revisionati, condivisi e riutilizzati su repository
-diversi.
+La sincronizzazione è idempotente: applicando più volte la stessa
+configurazione, RepoForge lascia invariate le risorse già allineate invece di
+creare duplicati.
 
-## Perché RepoForge
-
-Creare manualmente decine di label, milestone e issue è lento e soggetto a
-errori. RepoForge raccoglie la configurazione in file dichiarativi e la applica
-tramite `gh`.
-
-Il processo è progettato per essere **idempotente**: eseguendo più volte lo
-stesso comando, RepoForge aggiorna le risorse già esistenti invece di crearne
-copie.
+RepoForge non elimina automaticamente label, milestone o issue non dichiarate.
+Le dipendenze delle issue gestite vengono invece sincronizzate esattamente:
+quelle non più presenti nella configurazione vengono rimosse.
 
 ## Requisiti
 
+Per l'esecuzione diretta sono richiesti:
+
 - Bash 4.3 o successivo;
-- [GitHub CLI](https://cli.github.com/);
-- [jq](https://jqlang.github.io/jq/);
-- [yq v4](https://github.com/mikefarah/yq/);
-- accesso in scrittura al repository interessato.
+- GitHub CLI;
+- `jq`;
+- `yq` v4;
+- accesso di rete a GitHub;
+- permesso amministrativo sul repository da configurare.
 
-Prima dell'utilizzo è necessario autenticare GitHub CLI:
+Le dipendenze possono essere installate tramite il comando principale:
 
 ```bash
+chmod +x repoforge.sh
+./repoforge.sh install
+```
+
+Il comando rileva Homebrew o uno dei package manager Linux supportati. Su Linux
+installa il binario ufficiale di `yq` v4 adatto all'architettura corrente.
+
+Con Docker non è necessario installare queste dipendenze sulla macchina host:
+vengono incluse nell'immagine.
+
+## Autenticazione GitHub
+
+Durante `apply`, RepoForge verifica che GitHub CLI sia autenticato e che
+l'utente disponga del permesso richiesto sul repository.
+
+Se l'esecuzione avviene in un terminale interattivo e non esiste ancora una
+sessione, viene avviato automaticamente il flusso:
+
+```text
 gh auth login
-gh auth status
 ```
 
-Su macOS è possibile installare le dipendenze con Homebrew:
-
-```bash
-brew install gh jq yq
-```
+RepoForge non legge né salva token nei file YAML. Le credenziali restano sotto
+la gestione di GitHub CLI.
 
 ## Struttura del progetto
 
+Una configurazione tipica ha questa struttura:
+
 ```text
-repoforge/
+.
 ├── repoforge.sh
 ├── repoforge.yaml
 └── config/
-    ├── settings.yaml
     ├── labels.yaml
     ├── milestones.yaml
-    ├── collaborators.yaml
-    ├── branches.yaml
-    └── issues/
-        ├── authentication.yaml
-        ├── frontend.yaml
-        ├── backend.yaml
-        └── infrastructure.yaml
+    └── iusses.yaml
 ```
 
-| Percorso | Scopo |
-| --- | --- |
-| `repoforge.sh` | Legge, valida e applica la configurazione tramite `gh`. |
-| `repoforge.yaml` | Manifest principale del progetto. |
-| `config/settings.yaml` | Impostazioni generali e funzionalità del repository. |
-| `config/labels.yaml` | Catalogo centralizzato delle label. |
-| `config/milestones.yaml` | Release, scadenze e milestone. |
-| `config/collaborators.yaml` | Collaboratori, team e permessi. |
-| `config/branches.yaml` | Branch predefinito e regole di protezione. |
-| `config/issues/*.yaml` | Issue suddivise per area, epic o componente. |
-
-La separazione in più file evita un unico YAML difficile da mantenere. I file
-delle issue possono essere organizzati liberamente, per esempio per team,
-modulo, sprint o epic.
+Il nome fisico dei file è libero. È la sezione `sources` del manifest a
+stabilire cosa deve essere caricato. La chiave logica corretta per le issue è
+sempre `issues`.
 
 ## Manifest principale
 
-`repoforge.yaml` definisce il repository di destinazione e indica quali file
-caricare:
+`repoforge.yaml` definisce la versione del formato, il repository predefinito e
+i file sorgente:
 
 ```yaml
 version: 1
 
 repository:
   owner: acme
-  name: my-project
+  name: example-project
 
 sources:
-  settings: config/settings.yaml
   labels: config/labels.yaml
   milestones: config/milestones.yaml
-  collaborators: config/collaborators.yaml
-  branches: config/branches.yaml
-  issues:
-    - config/issues/*.yaml
+  issues: config/iusses.yaml
 ```
 
-I percorsi sono relativi alla posizione del manifest. La voce `issues` accetta
-più file e pattern glob.
+I percorsi sono relativi alla directory del manifest.
+
+Una sorgente può anche essere una lista di file o pattern glob:
+
+```yaml
+sources:
+  issues:
+    - config/issues/*.yaml
+    - config/backlog/*.yaml
+```
+
+Quando più file dichiarano la stessa collezione, gli elementi vengono uniti
+nella configurazione interna.
 
 ## Identificatori stabili
 
-Le risorse dichiarate nel progetto usano un campo `id` stabile:
+Label, milestone e issue utilizzano un campo `id` stabile:
 
 ```yaml
 id: priority-high
-name: priority:high
 ```
 
-Le altre configurazioni fanno riferimento all'`id`, non al nome visualizzato:
+Gli ID:
 
-```yaml
-labels:
-  - priority-high
-```
+- devono essere univoci nel proprio tipo di risorsa;
+- possono contenere lettere minuscole, numeri e trattini;
+- vengono usati per creare riferimenti tra le risorse;
+- non dovrebbero cambiare dopo la prima sincronizzazione.
 
-Questo permette di rinominare una label, una milestone o un'altra risorsa senza
-dover modificare tutti i riferimenti. Un `id`:
+RepoForge inserisce un marker invisibile nelle milestone e nelle issue gestite.
+Questo permette di riconoscerle tramite ID anche se il titolo viene modificato.
 
-- deve essere univoco all'interno del proprio tipo di risorsa;
-- dovrebbe contenere solo lettere minuscole, numeri e trattini;
-- non dovrebbe essere cambiato dopo la prima sincronizzazione.
-
-## Configurazione del repository
-
-Esempio di `config/settings.yaml`:
-
-```yaml
-settings:
-  description: Applicazione principale ACME
-  homepage: https://example.com
-  visibility: private
-  default_branch: main
-
-  features:
-    issues: true
-    projects: true
-    wiki: false
-    discussions: true
-
-  merge:
-    squash: true
-    merge_commit: false
-    rebase: true
-    delete_branch_on_merge: true
-```
-
-Questa sezione descrive metadati, visibilità, funzionalità abilitate e strategia
-di merge del repository.
-
-## Label
+## Configurare le label
 
 Esempio di `config/labels.yaml`:
 
@@ -167,284 +148,314 @@ Esempio di `config/labels.yaml`:
 labels:
   - id: priority-high
     name: priority:high
+    description: Intervento ad alta priorità
     color: D73A4A
-    description: Intervento prioritario
-
-  - id: type-feature
-    name: type:feature
-    color: 1D76DB
-    description: Nuova funzionalità
 
   - id: type-bug
     name: type:bug
-    color: B60205
     description: Comportamento inatteso
+    color: B60205
 ```
 
-Il colore deve essere espresso come valore esadecimale di sei caratteri, senza
-il simbolo `#`.
+Il colore deve contenere esattamente sei caratteri esadecimali, senza `#`.
 
-## Milestone
+Durante la sincronizzazione:
+
+- una label assente viene creata;
+- una label differente viene aggiornata;
+- una label già allineata rimane invariata;
+- una label remota non dichiarata non viene eliminata.
+
+## Configurare le milestone
 
 Esempio di `config/milestones.yaml`:
 
 ```yaml
 milestones:
   - id: release-v1
-    title: Versione 1.0
-    description: Prima release pubblica
-    due_on: 2026-09-30
+    title: Release 1.0
+    description: Prima versione stabile
+    due_on: 2026-08-31
     state: open
 ```
 
-Valori ammessi per `state`:
+`due_on` usa il formato `YYYY-MM-DD`. Gli stati ammessi sono:
 
 - `open`;
 - `closed`.
 
-Le issue possono collegarsi alla milestone usando `release-v1`, anche se il
-titolo visualizzato viene modificato successivamente.
+RepoForge sincronizza titolo, descrizione, scadenza e stato. Le milestone remote
+non dichiarate non vengono eliminate.
 
-## Issue
+## Configurare le issue
 
-Le issue sono divise in uno o più file dentro `config/issues/`.
-
-Esempio di `config/issues/authentication.yaml`:
+Esempio di `config/iusses.yaml`:
 
 ```yaml
 issues:
-  - id: auth-login
-    title: Implementare il login
-
+  - id: implement-authentication
+    title: Implementare l'autenticazione utente
     body: |
-      Aggiungere autenticazione e gestione della sessione.
+      Aggiungere login, logout e gestione della sessione.
 
-      ## Criteri di accettazione
-
-      - Login con credenziali valide
-      - Errore con credenziali errate
-      - Logout e invalidazione della sessione
+    assignees: []
 
     labels:
-      - priority-high
       - type-feature
+      - priority-high
 
     milestone: release-v1
 
-    assignees:
-      - octocat
+    dependencies:
+      - setup-project
 
-    dependencies: []
     state: open
 ```
 
-Il campo `body` supporta Markdown. I campi `labels` e `milestone` contengono gli
-identificatori definiti negli altri file.
+I campi `labels`, `milestone` e `dependencies` contengono ID RepoForge, non i
+nomi o i numeri visualizzati su GitHub.
 
-`dependencies` può descrivere relazioni logiche tra issue:
+RepoForge risolve automaticamente:
 
-```yaml
-issues:
-  - id: deploy-production
-    title: Eseguire il deploy in produzione
-    dependencies:
-      - auth-login
-      - frontend-dashboard
-```
+- ID label nel nome GitHub corrispondente;
+- ID milestone nel numero GitHub corrispondente;
+- ID issue nel numero e nell'identificatore GitHub necessari alle dipendenze.
 
-RepoForge può riportare queste relazioni nel corpo delle issue o convertirle in
-collegamenti supportati dalle API GitHub.
-
-## Collaboratori e team
-
-Esempio di `config/collaborators.yaml`:
+Gli assegnatari sono username GitHub:
 
 ```yaml
-collaborators:
-  - username: octocat
-    permission: push
-
-teams:
-  - organization: acme
-    slug: backend
-    permission: maintain
+assignees:
+  - octocat
 ```
 
-I permessi utilizzabili dipendono dal tipo di account, dal piano GitHub e dai
-privilegi dell'utente autenticato.
+Prima di applicare le dipendenze, tutte le issue vengono create o aggiornate.
+Questo secondo passaggio permette di stabilire relazioni anche tra issue create
+nella stessa esecuzione.
 
-## Protezione dei branch
+## Validazione
 
-Esempio di `config/branches.yaml`:
-
-```yaml
-branches:
-  - name: main
-    protection:
-      required_reviews: 2
-      dismiss_stale_reviews: true
-      require_code_owner_reviews: true
-      required_checks:
-        - test
-        - lint
-      enforce_admins: false
-      allow_force_pushes: false
-      allow_deletions: false
-```
-
-Gli status check devono corrispondere ai nomi effettivamente pubblicati dalle
-GitHub Actions o dagli altri sistemi CI.
-
-## Utilizzo
-
-Rendere eseguibile lo script:
+Validare la configurazione senza contattare GitHub:
 
 ```bash
-chmod +x repoforge.sh
+./repoforge.sh validate repoforge.yaml
 ```
 
-Validare la configurazione e vedere le operazioni previste:
+La validazione controlla, tra le altre cose:
+
+- sintassi YAML e JSON interno;
+- presenza e tipo delle sezioni principali;
+- file e glob dichiarati nel manifest;
+- campi obbligatori;
+- formato e unicità degli ID;
+- formato dei colori;
+- formato delle date;
+- stati ammessi;
+- label e milestone referenziate;
+- dipendenze verso issue esistenti;
+- dipendenze di una issue verso sé stessa.
+
+Qualsiasi errore interrompe l'esecuzione prima di contattare GitHub.
+
+## Dry run
+
+Mostrare le risorse dichiarate senza modificare GitHub:
 
 ```bash
 ./repoforge.sh --dry-run repoforge.yaml
 ```
 
-Applicare la configurazione:
+Il dry run mostra:
+
+- repository di destinazione;
+- numero di label;
+- numero di milestone;
+- numero di issue aperte e chiuse;
+- numero di assegnazioni;
+- numero di dipendenze.
+
+È possibile sovrascrivere il repository del manifest:
+
+```bash
+./repoforge.sh --dry-run repoforge.yaml \
+  --repo altra-organizzazione/altro-repository
+```
+
+## Applicare la configurazione
+
+Eseguire la sincronizzazione completa:
 
 ```bash
 ./repoforge.sh apply repoforge.yaml
 ```
 
-Sovrascrivere il repository indicato nel manifest:
+Applicarla a un repository diverso da quello nel manifest:
 
 ```bash
-./repoforge.sh apply repoforge.yaml --repo altra-org/altro-repo
+./repoforge.sh apply repoforge.yaml \
+  --repo acme/example-project
 ```
 
-## Flusso di esecuzione
+Il flusso eseguito è:
 
-Durante l'esecuzione RepoForge:
+1. caricamento del manifest e dei file sorgente;
+2. unione della configurazione;
+3. validazione completa;
+4. verifica dell'autenticazione;
+5. verifica del permesso amministrativo;
+6. sincronizzazione delle label;
+7. sincronizzazione delle milestone;
+8. creazione o aggiornamento delle issue;
+9. applicazione di stato, assegnatari e dipendenze;
+10. riepilogo e verifica conclusiva.
 
-1. carica `repoforge.yaml`;
-2. risolve i percorsi e i glob dichiarati in `sources`;
-3. unisce i file YAML in una configurazione interna;
-4. valida struttura, tipi, identificatori e riferimenti;
-5. verifica l'autenticazione di GitHub CLI;
-6. legge lo stato corrente del repository;
-7. calcola le risorse da creare o aggiornare;
-8. applica le modifiche nell'ordine corretto;
-9. produce un riepilogo finale.
+Se un passaggio fallisce, quelli successivi non vengono eseguiti.
 
-L'ordine tipico è: impostazioni, label, milestone, collaboratori, branch e infine
-issue. In questo modo ogni dipendenza esiste prima di essere utilizzata.
+## Riepilogo finale
 
-## Modalità dry run
+Al termine di `apply`, RepoForge confronta le risorse configurate con quelle
+presenti su GitHub e mostra un riepilogo:
 
-La modalità `--dry-run` non modifica GitHub. Mostra invece:
+```text
+Riepilogo RepoForge
+===================
+  Repository               acme/example-project
+  Label sincronizzate      5/5
+  Milestone sincronizzate  5/5
+  Issue sincronizzate      5/5
+  Issue aperte             4
+  Issue chiuse             1
+  Assegnazioni dichiarate  0
+  Dipendenze dichiarate    5
 
-- file caricati;
-- errori di validazione;
-- risorse che verrebbero create;
-- risorse che verrebbero aggiornate;
-- riferimenti mancanti;
-- comandi o richieste GitHub previste.
-
-È consigliabile eseguire sempre un dry run prima di applicare una configurazione
-su un repository condiviso.
-
-## Idempotenza
-
-RepoForge associa ogni risorsa dichiarativa alla relativa risorsa GitHub.
-
-Per le issue, l'associazione può essere memorizzata nel body tramite un commento
-HTML invisibile:
-
-```html
-<!-- repoforge:id=auth-login -->
+[repoforge.sh] Sincronizzazione completa.
 ```
 
-Le esecuzioni successive cercano questo identificatore e aggiornano la stessa
-issue. Il titolo può quindi cambiare senza creare duplicati.
+Se una risorsa configurata non viene trovata su GitHub, il riepilogo la elenca
+e il comando termina con un codice diverso da zero.
 
-## Validazione
+## Utilizzo con Docker
 
-Prima di contattare GitHub, RepoForge dovrebbe verificare almeno:
+### Costruire l'immagine
 
-- sintassi dei file YAML;
-- presenza dei campi obbligatori;
-- unicità degli identificatori;
-- formato dei colori;
-- formato delle date;
-- valori ammessi per stato e permessi;
-- esistenza delle label e milestone referenziate;
-- esistenza delle issue indicate come dipendenze;
-- assenza di dipendenze circolari.
+Lo stage finale include dipendenze, configurazione e applicazione:
 
-Un errore di validazione interrompe l'esecuzione prima di qualsiasi modifica.
+```bash
+docker build \
+  --target repoforge-test \
+  -t repoforge .
+```
 
-## Gestione degli errori
+La distribuzione predefinita è Ubuntu 24.04. È possibile cambiarla:
 
-Lo script termina con un codice diverso da zero quando:
+```bash
+docker build \
+  --build-arg UBUNTU_VERSION=24.04 \
+  --target repoforge-test \
+  -t repoforge .
+```
 
-- una dipendenza locale non è disponibile;
-- GitHub CLI non è autenticata;
-- il repository non esiste o non è accessibile;
-- la configurazione non è valida;
-- una richiesta GitHub fallisce.
+### Validare con Docker
 
-Le operazioni completate prima di un errore potrebbero essere già state
-applicate. Una nuova esecuzione è sicura grazie al comportamento idempotente.
+```bash
+docker run --rm repoforge \
+  validate repoforge.yaml
+```
+
+### Eseguire il dry run con Docker
+
+```bash
+docker run --rm repoforge \
+  --dry-run repoforge.yaml \
+  --repo acme/example-project
+```
+
+### Applicare con Docker
+
+L'autenticazione interattiva richiede `-it`:
+
+```bash
+docker run --rm -it \
+  repoforge \
+  apply repoforge.yaml \
+  --repo acme/example-project
+```
+
+Il container viene rimosso al termine, quindi senza un volume anche la
+configurazione GitHub CLI viene eliminata.
+
+### Conservare l'autenticazione
+
+Creare una volta un volume:
+
+```bash
+docker volume create repoforge-gh-config
+```
+
+Usarlo durante l'applicazione:
+
+```bash
+docker run --rm -it \
+  -v repoforge-gh-config:/root/.config/gh \
+  repoforge \
+  apply repoforge.yaml \
+  --repo acme/example-project
+```
+
+Alla prima esecuzione GitHub CLI richiede il login. Le esecuzioni successive
+riutilizzano la sessione memorizzata nel volume.
+
+### Usare una configurazione esterna
+
+L'immagine contiene la configurazione presente al momento della build. Per
+usare file locali senza ricostruire l'immagine, montare una directory:
+
+```bash
+docker run --rm -it \
+  -v repoforge-gh-config:/root/.config/gh \
+  -v "$PWD/my-config:/workspace/config:ro" \
+  repoforge \
+  apply /workspace/config/repoforge.yaml \
+  --repo acme/example-project
+```
+
+Tutti i percorsi in `sources` devono essere relativi al manifest montato.
+
+## Codici di uscita
+
+RepoForge restituisce `0` quando il comando termina correttamente.
+
+Restituisce un codice diverso da zero quando, per esempio:
+
+- manca una dipendenza locale;
+- il manifest non esiste;
+- un YAML non è valido;
+- la configurazione non supera la validazione;
+- GitHub CLI non riesce ad autenticarsi;
+- l'utente non possiede i permessi richiesti;
+- una chiamata GitHub fallisce;
+- una risorsa referenziata non esiste;
+- il riepilogo rileva una sincronizzazione incompleta.
+
+Questo comportamento permette di usare RepoForge anche in pipeline CI.
 
 ## Sicurezza
 
-- Non inserire token GitHub nei file YAML.
-- Autenticarsi esclusivamente tramite `gh auth login` o variabili d'ambiente
-  previste da GitHub CLI.
-- Non salvare secret in chiaro nel repository.
-- Usare `--dry-run` prima di modifiche massive.
-- Proteggere i file contenenti configurazioni sensibili tramite `.gitignore`.
+- Non inserire token, password o secret nei file YAML.
+- Usare il sistema di autenticazione di GitHub CLI.
+- Non copiare credenziali dentro l'immagine Docker.
+- Montare la configurazione GitHub CLI tramite volume quando serve persistenza.
+- Revisionare sempre il dry run prima di applicare modifiche importanti.
 
-Per gestire GitHub Actions Secrets, il YAML dovrebbe contenere soltanto il nome
-della variabile d'ambiente da leggere:
+## Limiti attuali
 
-```yaml
-secrets:
-  - name: DEPLOY_TOKEN
-    from_env: REPOFORGE_DEPLOY_TOKEN
-```
-
-## Limiti
-
-- Alcune impostazioni richiedono privilegi amministrativi.
-- Le funzionalità disponibili possono variare tra repository personali e
-  organizzazioni.
-- Alcune protezioni dei branch dipendono dal piano GitHub.
-- I secret possono essere creati o aggiornati, ma non letti nuovamente tramite
-  API.
-- La rimozione automatica di risorse non più presenti nel YAML dovrebbe essere
-  disabilitata per impostazione predefinita e attivata soltanto con un'opzione
-  esplicita come `--prune`.
-
-## Sviluppo
-
-Controllo sintattico dello script:
-
-```bash
-bash -n repoforge.sh
-```
-
-Analisi statica con ShellCheck:
-
-```bash
-shellcheck repoforge.sh
-```
-
-Test della configurazione:
-
-```bash
-./repoforge.sh --dry-run repoforge.yaml
-```
+- RepoForge non elimina automaticamente label, milestone o issue assenti dalla
+  configurazione.
+- La rimozione delle dipendenze è invece parte della loro sincronizzazione.
+- Gli assegnatari devono essere utenti GitHub validi e assegnabili al
+  repository.
+- Le funzionalità disponibili possono dipendere dal piano GitHub e dai permessi
+  del token.
 
 ## Licenza
 
-Distribuito sotto licenza MIT. Consultare il file `LICENSE` per i dettagli.
+Consultare il file `LICENSE`.

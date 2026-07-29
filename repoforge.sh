@@ -9,6 +9,8 @@ readonly GITHUB_SCRIPTS_DIR="$SCRIPTS_DIR/github"
 
 source "$SCRIPTS_DIR/log/log.sh"
 
+export REPOFORGE_LOG_PROGRAM_NAME="$PROGRAM_NAME"
+
 CONFIG_FILE=""
 
 cleanup() {
@@ -22,11 +24,13 @@ trap cleanup EXIT HUP INT TERM
 usage() {
   cat <<EOF
 Uso:
+  $PROGRAM_NAME install
   $PROGRAM_NAME validate [MANIFEST]
   $PROGRAM_NAME --dry-run [MANIFEST] [--repo OWNER/REPOSITORY]
   $PROGRAM_NAME apply [MANIFEST] [--repo OWNER/REPOSITORY]
 
 Comandi:
+  install    Installa e verifica le dipendenze locali.
   validate   Carica e valida la configurazione senza contattare GitHub.
   --dry-run  Mostra il riepilogo delle risorse che verrebbero applicate.
   apply      Sincronizza la configurazione con il repository GitHub.
@@ -143,6 +147,10 @@ main() {
 
   while (($# > 0)); do
     case "$1" in
+      install)
+        [[ -z "$mode" ]] || die "è possibile specificare un solo comando."
+        mode="install"
+        ;;
       validate)
         [[ -z "$mode" ]] || die "è possibile specificare un solo comando."
         mode="validate"
@@ -178,6 +186,16 @@ main() {
 
   mode="${mode:-dry-run}"
   manifest="${manifest:-repoforge.yaml}"
+
+  if [[ "$mode" == "install" ]]; then
+    [[ -z "$repository_override" ]] ||
+      die "l'opzione --repo non è valida con il comando install."
+    [[ "$manifest" == "repoforge.yaml" ]] ||
+      die "il comando install non accetta un manifest."
+    require_executable "$SCRIPTS_DIR/installer.sh"
+    "$SCRIPTS_DIR/installer.sh"
+    return
+  fi
 
   load_and_validate "$manifest"
 
