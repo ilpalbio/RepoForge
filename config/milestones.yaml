@@ -2,5 +2,5 @@ milestones:
   - id: milestone-id
     title: title
     description: desc-text
-    due_on: yyyy-mm-dd
-    state: open/close
+    due_on: 2026-09-30
+    state: open

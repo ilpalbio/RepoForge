@@ -1,10 +1,11 @@
 issues:
-  - id: iusse-id
+  - id: issue-id
     title: title
     description: desc-markdown
 
-    assignees: assignees-id-arr
-    labels: label-id-arr
-    project: project-id
+    assignees: []
+    labels:
+      - label-id
     milestone: milestone-id
-    state: open/closed
+    dependencies: []
+    state: open

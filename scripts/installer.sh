@@ -102,6 +102,31 @@ install_yq() {
   rm -f -- "$temporary_file"
 }
 
+install_jq() {
+  if command -v brew >/dev/null 2>&1; then
+    log "Installazione di jq tramite Homebrew..."
+    brew install jq
+  elif command -v apt-get >/dev/null 2>&1; then
+    log "Installazione di jq tramite APT..."
+    as_root apt-get update
+    as_root apt-get install -y jq
+  elif command -v dnf >/dev/null 2>&1; then
+    log "Installazione di jq tramite DNF..."
+    as_root dnf install -y jq
+  elif command -v yum >/dev/null 2>&1; then
+    log "Installazione di jq tramite YUM..."
+    as_root yum install -y jq
+  elif command -v pacman >/dev/null 2>&1; then
+    log "Installazione di jq tramite Pacman..."
+    as_root pacman -S --needed --noconfirm jq
+  elif command -v zypper >/dev/null 2>&1; then
+    log "Installazione di jq tramite Zypper..."
+    as_root zypper --non-interactive install jq
+  else
+    die "package manager non supportato. Installa jq da https://jqlang.org/."
+  fi
+}
+
 main() {
   if command -v gh >/dev/null 2>&1; then
     log "GitHub CLI è già installato: $(gh --version | head -n 1)"
@@ -124,6 +149,16 @@ main() {
     yq --version 2>&1 | grep -Eq 'version v?4\.' ||
       die "la versione installata di yq non è compatibile: è richiesta la v4."
     log "yq installato correttamente: $(yq --version)"
+  fi
+
+  if command -v jq >/dev/null 2>&1; then
+    log "jq è già installato: $(jq --version)"
+  else
+    log "jq non è installato."
+    install_jq
+    command -v jq >/dev/null 2>&1 ||
+      die "l'installazione è terminata, ma il comando 'jq' non è disponibile nel PATH."
+    log "jq installato correttamente: $(jq --version)"
   fi
 
   log "Installazione delle dipendenze completata."

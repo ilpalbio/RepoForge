@@ -15,7 +15,9 @@ RUN chmod +x ./scripts/installer.sh \
 RUN command -v gh \
     && gh --version \
     && command -v yq \
-    && yq --version
+    && yq --version \
+    && command -v jq \
+    && jq --version
 
 # La seconda esecuzione verifica che l'installer sia idempotente.
 RUN ./scripts/installer.sh
@@ -35,4 +37,13 @@ RUN yq eval -e \
     '.version == 1 and (.repository | type == "!!map") and (.labels | type == "!!seq") and (.milestones | type == "!!seq") and (.issues | type == "!!seq")' \
     /tmp/repoforge-config.json > /dev/null
 
-CMD ["./scripts/loader.sh", "./repoforge.yaml"]
+# Stage 3: verifica semanticamente il JSON prodotto dal loader.
+FROM loader-test AS validator-test
+
+COPY scripts/validator.sh ./scripts/validator.sh
+
+RUN chmod +x ./scripts/validator.sh
+
+RUN ./scripts/validator.sh /tmp/repoforge-config.json
+
+CMD ["./scripts/validator.sh", "/tmp/repoforge-config.json"]
