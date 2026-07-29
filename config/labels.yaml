@@ -1,5 +1,25 @@
 labels:
-  - id: label-id
-    name: name
-    description: desc-text
+  - id: priority-high
+    name: priority:high
+    description: Intervento ad alta priorità
     color: D73A4A
+
+  - id: type-bug
+    name: type:bug
+    description: Comportamento inatteso o malfunzionamento
+    color: B60205
+
+  - id: type-feature
+    name: type:feature
+    description: Nuova funzionalità o miglioramento
+    color: 1D76DB
+
+  - id: status-blocked
+    name: status:blocked
+    description: Attività bloccata da una dipendenza
+    color: E4E669
+
+  - id: documentation
+    name: documentation
+    description: Aggiornamenti alla documentazione
+    color: 0075CA

@@ -57,3 +57,15 @@ RUN chmod +x ./scripts/github/auth.sh \
 
 ENTRYPOINT ["./scripts/github/auth.sh"]
 CMD ["--help"]
+
+# Stage 5: sincronizza due volte le label e verifica l'idempotenza.
+# Il test modifica realmente il repository passato a `docker run`.
+FROM auth-test AS labels-test
+
+COPY scripts/github/labels.sh ./scripts/github/labels.sh
+
+RUN chmod +x ./scripts/github/labels.sh \
+    && bash -n ./scripts/github/labels.sh
+
+ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/labels.sh --help; fi; ./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json && output=\"$(./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json)\" && printf '%s\\n' \"$output\" && grep -Fq 'create=0, aggiornate=0' <<<\"$output\"", "--"]
+CMD ["--help"]

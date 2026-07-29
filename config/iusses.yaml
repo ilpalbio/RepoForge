@@ -5,7 +5,8 @@ issues:
 
     assignees: []
     labels:
-      - label-id
+      - type-feature
+      - priority-high
     milestone: milestone-id
     dependencies: []
     state: open
