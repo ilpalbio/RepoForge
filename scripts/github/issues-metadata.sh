@@ -22,9 +22,9 @@ validate_inputs() {
   local json_file="$2"
 
   command -v gh >/dev/null 2>&1 ||
-    die "GitHub CLI non è installato. Esegui scripts/installer.sh."
+    die "GitHub CLI non è installato. Esegui: ./repoforge.sh install"
   command -v jq >/dev/null 2>&1 ||
-    die "jq non è installato. Esegui scripts/installer.sh."
+    die "jq non è installato. Esegui: ./repoforge.sh install"
 
   [[ "$repository" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
     die "repository non valido: usa il formato OWNER/REPOSITORY."

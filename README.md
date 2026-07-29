@@ -83,7 +83,7 @@ Una configurazione tipica ha questa struttura:
 └── config/
     ├── labels.yaml
     ├── milestones.yaml
-    └── iusses.yaml
+    └── issues.yaml
 ```
 
 Il nome fisico dei file è libero. È la sezione `sources` del manifest a
@@ -105,7 +105,7 @@ repository:
 sources:
   labels: config/labels.yaml
   milestones: config/milestones.yaml
-  issues: config/iusses.yaml
+  issues: config/issues.yaml
 ```
 
 I percorsi sono relativi alla directory del manifest.
@@ -189,7 +189,7 @@ non dichiarate non vengono eliminate.
 
 ## Configurare le issue
 
-Esempio di `config/iusses.yaml`:
+Esempio di `config/issues.yaml`:
 
 ```yaml
 issues:
@@ -341,7 +341,7 @@ Lo stage finale include dipendenze, configurazione e applicazione:
 
 ```bash
 docker build \
-  --target repoforge-test \
+  --target repoforge \
   -t repoforge .
 ```
 
@@ -350,7 +350,7 @@ La distribuzione predefinita è Ubuntu 24.04. È possibile cambiarla:
 ```bash
 docker build \
   --build-arg UBUNTU_VERSION=24.04 \
-  --target repoforge-test \
+  --target repoforge \
   -t repoforge .
 ```
 

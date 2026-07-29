@@ -9,5 +9,5 @@ repository:
 sources:
   labels: config/labels.yaml
   milestones: config/milestones.yaml
-  issues: config/iusses.yaml
+  issues: config/issues.yaml
 

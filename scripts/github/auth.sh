@@ -38,7 +38,7 @@ check_github_access() {
   local api_error_file
 
   command -v gh >/dev/null 2>&1 ||
-    die "GitHub CLI non è installato. Esegui scripts/installer.sh."
+    die "GitHub CLI non è installato. Esegui: ./repoforge.sh install"
 
   [[ "$repository" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
     die "repository non valido: usa il formato OWNER/REPOSITORY."

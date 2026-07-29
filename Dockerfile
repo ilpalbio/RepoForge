@@ -142,3 +142,26 @@ RUN chmod +x ./repoforge.sh \
 
 ENTRYPOINT ["./repoforge.sh"]
 CMD ["--help"]
+
+# Immagine finale: contiene solo runtime, configurazione e dipendenze.
+# Non eredita fixture o artefatti degli stage di test.
+FROM installer-test AS repoforge
+
+COPY scripts/loader.sh scripts/validator.sh ./scripts/
+COPY scripts/github/ ./scripts/github/
+COPY repoforge.sh repoforge.yaml ./
+COPY config/ ./config/
+
+RUN chmod +x \
+      ./repoforge.sh \
+      ./scripts/loader.sh \
+      ./scripts/validator.sh \
+      ./scripts/github/*.sh \
+    && bash -n \
+      ./repoforge.sh \
+      ./scripts/loader.sh \
+      ./scripts/validator.sh \
+      ./scripts/github/*.sh
+
+ENTRYPOINT ["./repoforge.sh"]
+CMD ["--help"]
