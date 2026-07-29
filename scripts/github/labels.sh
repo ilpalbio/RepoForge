@@ -5,14 +5,7 @@ set -Eeuo pipefail
 readonly PROGRAM_NAME="${0##*/}"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-log() {
-  printf '[%s] %s\n' "$PROGRAM_NAME" "$*"
-}
-
-die() {
-  printf '[%s] Errore: %s\n' "$PROGRAM_NAME" "$*" >&2
-  exit 1
-}
+source "$SCRIPT_DIR/../log/log.sh"
 
 usage() {
   cat <<EOF

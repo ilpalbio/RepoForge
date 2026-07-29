@@ -3,14 +3,13 @@
 set -Eeuo pipefail
 
 readonly PROGRAM_NAME="${0##*/}"
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 ERROR_COUNT=0
 
-log() {
-  printf '[%s] %s\n' "$PROGRAM_NAME" "$*"
-}
+source "$SCRIPT_DIR/log/log.sh"
 
 error() {
-  printf '[%s] Errore: %s\n' "$PROGRAM_NAME" "$*" >&2
+  log_error "$@"
   ((ERROR_COUNT += 1))
 }
 

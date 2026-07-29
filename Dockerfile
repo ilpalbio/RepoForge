@@ -7,6 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /opt/repoforge
 
+COPY scripts/log/log.sh ./scripts/log/log.sh
 COPY scripts/installer.sh ./scripts/installer.sh
 
 RUN chmod +x ./scripts/installer.sh \
@@ -129,4 +130,15 @@ RUN chmod +x ./scripts/github/summary.sh \
     && bash -n ./scripts/github/summary.sh
 
 ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/summary.sh --help; fi; config=/tmp/repoforge-config.json; ./scripts/github/labels.sh \"$1\" \"$config\" && ./scripts/github/milestones.sh \"$1\" \"$config\" && ./scripts/github/issues.sh \"$1\" \"$config\" && ./scripts/github/issues-metadata.sh \"$1\" \"$config\" && output=\"$(./scripts/github/summary.sh \"$1\" \"$config\")\" && printf '%s\\n' \"$output\" && grep -Fq 'Sincronizzazione completa.' <<<\"$output\"", "--"]
+CMD ["--help"]
+
+# Stage 10: entrypoint end-to-end centralizzato di RepoForge.
+FROM summary-test AS repoforge-test
+
+COPY repoforge.sh ./repoforge.sh
+
+RUN chmod +x ./repoforge.sh \
+    && bash -n ./repoforge.sh
+
+ENTRYPOINT ["./repoforge.sh"]
 CMD ["--help"]
