@@ -46,4 +46,14 @@ RUN chmod +x ./scripts/validator.sh
 
 RUN ./scripts/validator.sh /tmp/repoforge-config.json
 
-CMD ["./scripts/validator.sh", "/tmp/repoforge-config.json"]
+# Stage 4: prepara il test interattivo di autenticazione e autorizzazione GitHub.
+# Il login viene eseguito a runtime con `docker run -it`, mai durante la build.
+FROM validator-test AS auth-test
+
+COPY scripts/github/auth.sh ./scripts/github/auth.sh
+
+RUN chmod +x ./scripts/github/auth.sh \
+    && bash -n ./scripts/github/auth.sh
+
+ENTRYPOINT ["./scripts/github/auth.sh"]
+CMD ["--help"]
