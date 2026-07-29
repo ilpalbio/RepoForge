@@ -78,14 +78,14 @@ milestone_payload() {
     '{
       title: $title,
       description: $description,
-      state: $state,
-      due_on: (
-        if $due_on == ""
-        then null
-        else ($due_on + "T23:59:59Z")
-        end
-      )
-    }'
+      state: $state
+    }
+    + (
+      if $due_on == ""
+      then {}
+      else {due_on: ($due_on + "T23:59:59Z")}
+      end
+    )'
 }
 
 sync_milestones() {

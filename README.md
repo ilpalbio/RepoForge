@@ -406,19 +406,65 @@ riutilizzano la sessione memorizzata nel volume.
 
 ### Usare una configurazione esterna
 
-L'immagine contiene la configurazione presente al momento della build. Per
-usare file locali senza ricostruire l'immagine, montare una directory:
+L'immagine contiene la configurazione presente al momento della build, ma
+RepoForge può usare il manifest e i file YAML presenti direttamente in un
+altro progetto. Non è necessario copiarli nella directory `config/` di
+RepoForge né ricostruire l'immagine.
+
+Per esempio, il progetto esterno può avere questa struttura:
+
+```text
+mio-progetto/
+├── repoforge.yaml
+├── labels.yaml
+├── milestones.yaml
+└── issues.yaml
+```
+
+Il relativo `repoforge.yaml` può riferirsi ai file nella stessa directory:
+
+```yaml
+version: 1
+
+repository:
+  owner: acme
+  name: mio-progetto
+
+sources:
+  labels: labels.yaml
+  milestones: milestones.yaml
+  issues: issues.yaml
+```
+
+Dalla directory `mio-progetto`, montare l'intero progetto nel container:
 
 ```bash
 docker run --rm -it \
   -v repoforge-gh-config:/root/.config/gh \
-  -v "$PWD/my-config:/workspace/config:ro" \
+  -v "$PWD:/workspace/project:ro" \
   repoforge \
-  apply /workspace/config/repoforge.yaml \
-  --repo acme/example-project
+  apply /workspace/project/repoforge.yaml
 ```
 
-Tutti i percorsi in `sources` devono essere relativi al manifest montato.
+`$PWD` indica la directory corrente sul computer host. Nel container viene
+resa disponibile come `/workspace/project`, in sola lettura grazie a `:ro`.
+
+I percorsi dichiarati in `sources` sono risolti rispetto alla directory che
+contiene `repoforge.yaml`. I file possono quindi trovarsi nella root del
+progetto, come nell'esempio, oppure in qualsiasi sua sottodirectory:
+
+```yaml
+sources:
+  labels: .github/repoforge/labels.yaml
+  milestones: planning/milestones.yaml
+  issues:
+    - issues/*.yaml
+    - backlog/*.yaml
+```
+
+Se i file si trovano in directory host diverse, anche quelle directory devono
+essere montate nel container e referenziate tramite il rispettivo percorso
+interno.
 
 ## Codici di uscita
 
