@@ -1,6 +1,30 @@
 milestones:
-  - id: milestone-id
-    title: title
-    description: desc-text
+  - id: release-v1
+    title: Release 1.0
+    description: Prima versione stabile del progetto
+    due_on: 2026-08-31
+    state: open
+
+  - id: release-v1-1
+    title: Release 1.1
+    description: Miglioramenti e correzioni successive alla prima release
     due_on: 2026-09-30
     state: open
+
+  - id: documentation-sprint
+    title: Documentation Sprint
+    description: Revisione e completamento della documentazione
+    due_on: 2026-10-15
+    state: open
+
+  - id: security-review
+    title: Security Review
+    description: Analisi della sicurezza e risoluzione delle vulnerabilità
+    due_on: 2026-11-15
+    state: open
+
+  - id: initial-prototype
+    title: Initial Prototype
+    description: Completamento del prototipo iniziale
+    due_on: 2026-07-15
+    state: closed

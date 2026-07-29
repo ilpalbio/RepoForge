@@ -69,3 +69,15 @@ RUN chmod +x ./scripts/github/labels.sh \
 
 ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/labels.sh --help; fi; ./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json && output=\"$(./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json)\" && printf '%s\\n' \"$output\" && grep -Fq 'create=0, aggiornate=0' <<<\"$output\"", "--"]
 CMD ["--help"]
+
+# Stage 6: sincronizza due volte le milestone e verifica l'idempotenza.
+# Il test modifica realmente il repository passato a `docker run`.
+FROM auth-test AS milestones-test
+
+COPY scripts/github/milestones.sh ./scripts/github/milestones.sh
+
+RUN chmod +x ./scripts/github/milestones.sh \
+    && bash -n ./scripts/github/milestones.sh
+
+ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/milestones.sh --help; fi; ./scripts/github/milestones.sh \"$1\" /tmp/repoforge-config.json && output=\"$(./scripts/github/milestones.sh \"$1\" /tmp/repoforge-config.json)\" && printf '%s\\n' \"$output\" && grep -Fq 'create=0, aggiornate=0' <<<\"$output\"", "--"]
+CMD ["--help"]
