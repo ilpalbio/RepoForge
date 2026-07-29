@@ -101,3 +101,32 @@ RUN chmod +x \
 
 ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/issues.sh --help; fi; ./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json && ./scripts/github/milestones.sh \"$1\" /tmp/repoforge-config.json && ./scripts/github/issues.sh \"$1\" /tmp/repoforge-config.json && output=\"$(./scripts/github/issues.sh \"$1\" /tmp/repoforge-config.json)\" && printf '%s\\n' \"$output\" && grep -Fq 'create=0, aggiornate=0' <<<\"$output\"", "--"]
 CMD ["--help"]
+
+# Stage 8: applica due volte stato, assegnatari e dipendenze delle issue,
+# verificando che il secondo passaggio non produca modifiche.
+FROM issues-test AS issues-metadata-test
+
+COPY scripts/github/issues-metadata.sh ./scripts/github/issues-metadata.sh
+COPY tests/fixtures/issues-metadata/ ./tests/fixtures/issues-metadata/
+
+RUN chmod +x ./scripts/github/issues-metadata.sh \
+    && bash -n ./scripts/github/issues-metadata.sh \
+    && jq empty ./tests/fixtures/issues-metadata/*.json \
+    && if ./scripts/github/issues-metadata.sh \
+      owner/repository \
+      ./tests/fixtures/issues-metadata/invalid-state.json; then exit 1; fi
+
+ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/issues-metadata.sh --help; fi; fixture=./tests/fixtures/issues-metadata/valid.json; ./scripts/github/labels.sh \"$1\" /tmp/repoforge-config.json && ./scripts/github/milestones.sh \"$1\" /tmp/repoforge-config.json && ./scripts/github/issues.sh \"$1\" /tmp/repoforge-config.json && ./scripts/github/issues-metadata.sh \"$1\" \"$fixture\" && output=\"$(./scripts/github/issues-metadata.sh \"$1\" \"$fixture\")\" && printf '%s\\n' \"$output\" && grep -Fq 'metadati_aggiornati=0, dipendenze_aggiunte=0, dipendenze_rimosse=0' <<<\"$output\"", "--"]
+CMD ["--help"]
+
+# Stage 9: esegue l'intero flusso e verifica il riepilogo finale.
+# Il test modifica realmente il repository passato a `docker run`.
+FROM issues-metadata-test AS summary-test
+
+COPY scripts/github/summary.sh ./scripts/github/summary.sh
+
+RUN chmod +x ./scripts/github/summary.sh \
+    && bash -n ./scripts/github/summary.sh
+
+ENTRYPOINT ["bash", "-c", "if [[ \"$1\" == \"--help\" ]]; then exec ./scripts/github/summary.sh --help; fi; config=/tmp/repoforge-config.json; ./scripts/github/labels.sh \"$1\" \"$config\" && ./scripts/github/milestones.sh \"$1\" \"$config\" && ./scripts/github/issues.sh \"$1\" \"$config\" && ./scripts/github/issues-metadata.sh \"$1\" \"$config\" && output=\"$(./scripts/github/summary.sh \"$1\" \"$config\")\" && printf '%s\\n' \"$output\" && grep -Fq 'Sincronizzazione completa.' <<<\"$output\"", "--"]
+CMD ["--help"]

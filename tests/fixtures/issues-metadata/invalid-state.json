@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "repository": {
+    "owner": "owner-name",
+    "name": "repo-name"
+  },
+  "labels": [],
+  "milestones": [],
+  "issues": [
+    {
+      "id": "invalid-state",
+      "title": "Issue con stato non valido",
+      "state": "in-progress",
+      "assignees": [],
+      "dependencies": []
+    }
+  ]
+}

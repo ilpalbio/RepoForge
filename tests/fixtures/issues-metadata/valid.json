@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "repository": {
+    "owner": "owner-name",
+    "name": "repo-name"
+  },
+  "labels": [],
+  "milestones": [],
+  "issues": [
+    {
+      "id": "setup-project",
+      "title": "Configurare la struttura iniziale del progetto",
+      "state": "closed",
+      "assignees": [],
+      "dependencies": []
+    },
+    {
+      "id": "implement-authentication",
+      "title": "Implementare l'autenticazione utente",
+      "state": "open",
+      "assignees": [],
+      "dependencies": [
+        "setup-project"
+      ]
+    },
+    {
+      "id": "fix-loader-errors",
+      "title": "Correggere la gestione degli errori del loader",
+      "state": "open",
+      "assignees": [],
+      "dependencies": [
+        "setup-project"
+      ]
+    },
+    {
+      "id": "write-user-guide",
+      "title": "Scrivere la guida utente",
+      "state": "open",
+      "assignees": [],
+      "dependencies": [
+        "implement-authentication",
+        "fix-loader-errors"
+      ]
+    },
+    {
+      "id": "perform-security-review",
+      "title": "Eseguire la revisione di sicurezza",
+      "state": "open",
+      "assignees": [],
+      "dependencies": [
+        "implement-authentication"
+      ]
+    }
+  ]
+}

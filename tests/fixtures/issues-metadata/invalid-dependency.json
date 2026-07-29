@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "repository": {
+    "owner": "owner-name",
+    "name": "repo-name"
+  },
+  "labels": [],
+  "milestones": [],
+  "issues": [
+    {
+      "id": "setup-project",
+      "title": "Configurare la struttura iniziale del progetto",
+      "state": "closed",
+      "assignees": [],
+      "dependencies": [
+        "missing-issue"
+      ]
+    }
+  ]
+}
