@@ -1,0 +1,10 @@
+iusses:
+  - id: iusse-id
+    title: title
+    description: desc-markdown
+
+    assignees: assignees-id-arr
+    labels: label-id-arr
+    project: project-id
+    milestone: milestone-id
+    state: open/closed

@@ -1,0 +1,5 @@
+labels:
+  - id: label-id
+    name: name
+    description: desc-text
+    color: D######

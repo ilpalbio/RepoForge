@@ -1,0 +1,6 @@
+milestones:
+  - id: milestone-id
+    title: title
+    description: desc-text
+    due_on: yyyy-mm-dd
+    state: open/close

@@ -1,0 +1,13 @@
+# This main file acts like the manifest
+
+version: 1
+
+repository:
+  owner: owner-name
+  name: repo-name
+
+sources:
+  labels: path-to-labels.yaml
+  milestones: path-to-milestones.yaml
+  iusses: path-to-iusses.yaml
+
