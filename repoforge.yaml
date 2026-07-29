@@ -7,7 +7,7 @@ repository:
   name: repo-name
 
 sources:
-  labels: path-to-labels.yaml
-  milestones: path-to-milestones.yaml
-  iusses: path-to-iusses.yaml
+  labels: config/labels.yaml
+  milestones: config/milestones.yaml
+  issues: config/iusses.yaml
 

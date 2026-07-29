@@ -2,6 +2,4 @@
 .idea
 Dockerfile*
 README.md
-config
 repoforge.sh
-repoforge.yaml
