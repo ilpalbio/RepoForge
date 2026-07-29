@@ -1,12 +1,74 @@
 issues:
-  - id: issue-id
-    title: title
-    description: desc-markdown
-
+  - id: setup-project
+    title: Configurare la struttura iniziale del progetto
+    body: |
+      Preparare la struttura delle directory, gli script principali e la
+      configurazione iniziale del repository.
     assignees: []
     labels:
       - type-feature
       - priority-high
     milestone: release-v1
     dependencies: []
+    state: closed
+
+  - id: implement-authentication
+    title: Implementare l'autenticazione utente
+    body: |
+      Aggiungere il flusso di autenticazione e la gestione delle sessioni.
+
+      Criteri di accettazione:
+
+      - login e logout funzionanti;
+      - gestione degli errori;
+      - sessione persistente.
+    assignees: []
+    labels:
+      - type-feature
+      - priority-high
+    milestone: release-v1
+    dependencies:
+      - setup-project
+    state: open
+
+  - id: fix-loader-errors
+    title: Correggere la gestione degli errori del loader
+    body: |
+      Migliorare i messaggi restituiti quando un file YAML è mancante oppure
+      contiene una configurazione non valida.
+    assignees: []
+    labels:
+      - type-bug
+      - priority-high
+    milestone: release-v1
+    dependencies:
+      - setup-project
+    state: open
+
+  - id: write-user-guide
+    title: Scrivere la guida utente
+    body: |
+      Documentare installazione, configurazione e utilizzo dei comandi
+      principali di RepoForge.
+    assignees: []
+    labels:
+      - documentation
+    milestone: documentation-sprint
+    dependencies:
+      - implement-authentication
+      - fix-loader-errors
+    state: open
+
+  - id: perform-security-review
+    title: Eseguire la revisione di sicurezza
+    body: |
+      Analizzare autenticazione, gestione dei token e chiamate alle API GitHub.
+      Documentare i problemi individuati e le relative correzioni.
+    assignees: []
+    labels:
+      - status-blocked
+      - priority-high
+    milestone: security-review
+    dependencies:
+      - implement-authentication
     state: open
