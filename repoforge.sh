@@ -22,12 +22,20 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 usage() {
+  local manifest_arg="[MANIFEST]"
+  local manifest_help="Se MANIFEST non è specificato, viene utilizzato ./repoforge.yaml."
+
+  if [[ "${REPOFORGE_REQUIRE_MANIFEST:-0}" == "1" ]]; then
+    manifest_arg="MANIFEST"
+    manifest_help="In Docker, monta la directory della configurazione e passa il percorso di MANIFEST nel container."
+  fi
+
   cat <<EOF
 Uso:
   $PROGRAM_NAME install
-  $PROGRAM_NAME validate [MANIFEST]
-  $PROGRAM_NAME --dry-run [MANIFEST] [--repo OWNER/REPOSITORY]
-  $PROGRAM_NAME apply [MANIFEST] [--repo OWNER/REPOSITORY]
+  $PROGRAM_NAME validate $manifest_arg
+  $PROGRAM_NAME --dry-run $manifest_arg [--repo OWNER/REPOSITORY]
+  $PROGRAM_NAME apply $manifest_arg [--repo OWNER/REPOSITORY]
 
 Comandi:
   install    Installa e verifica le dipendenze locali.
@@ -39,7 +47,7 @@ Opzioni:
   --repo OWNER/REPOSITORY  Sovrascrive il repository definito nel manifest.
   -h, --help               Mostra questo messaggio.
 
-Se MANIFEST non è specificato, viene utilizzato ./repoforge.yaml.
+$manifest_help
 EOF
 }
 
@@ -185,19 +193,22 @@ main() {
   done
 
   mode="${mode:-dry-run}"
-  manifest="${manifest:-repoforge.yaml}"
 
   if [[ "$mode" == "install" ]]; then
     [[ -z "$repository_override" ]] ||
       die "l'opzione --repo non è valida con il comando install."
-    [[ "$manifest" == "repoforge.yaml" ]] ||
+    [[ -z "$manifest" || "$manifest" == "repoforge.yaml" ]] ||
       die "il comando install non accetta un manifest."
     require_executable "$SCRIPTS_DIR/installer.sh"
     "$SCRIPTS_DIR/installer.sh"
     return
   fi
 
-  load_and_validate "$manifest"
+  if [[ -z "$manifest" && "${REPOFORGE_REQUIRE_MANIFEST:-0}" == "1" ]]; then
+    die "manifest obbligatorio: monta la directory della configurazione e passa il percorso del manifest nel container."
+  fi
+
+  load_and_validate "${manifest:-repoforge.yaml}"
 
   if [[ "$mode" == "validate" ]]; then
     log "Configurazione valida."

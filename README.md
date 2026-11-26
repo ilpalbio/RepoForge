@@ -337,7 +337,7 @@ e il comando termina con un codice diverso da zero.
 
 ### Costruire l'immagine
 
-Lo stage finale include dipendenze, configurazione e applicazione:
+Lo stage finale include l'applicazione e le sue dipendenze.
 
 ```bash
 docker build \
@@ -356,16 +356,22 @@ docker build \
 
 ### Validare con Docker
 
+Dalla directory che contiene il tuo manifest e i file YAML a cui punta,
+monta la directory in sola lettura e passa il percorso del manifest nel
+container. Il percorso è obbligatorio per `validate`, `--dry-run` e `apply`.
+
 ```bash
-docker run --rm repoforge \
-  validate repoforge.yaml
+docker run --rm \
+  -v "$PWD:/workspace/project:ro" \
+  repoforge validate /workspace/project/repoforge.yaml
 ```
 
 ### Eseguire il dry run con Docker
 
 ```bash
-docker run --rm repoforge \
-  --dry-run repoforge.yaml \
+docker run --rm \
+  -v "$PWD:/workspace/project:ro" \
+  repoforge --dry-run /workspace/project/repoforge.yaml \
   --repo acme/example-project
 ```
 
@@ -375,8 +381,9 @@ L'autenticazione interattiva richiede `-it`:
 
 ```bash
 docker run --rm -it \
+  -v "$PWD:/workspace/project:ro" \
   repoforge \
-  apply repoforge.yaml \
+  apply /workspace/project/repoforge.yaml \
   --repo acme/example-project
 ```
 
@@ -396,8 +403,9 @@ Usarlo durante l'applicazione:
 ```bash
 docker run --rm -it \
   -v repoforge-gh-config:/root/.config/gh \
+  -v "$PWD:/workspace/project:ro" \
   repoforge \
-  apply repoforge.yaml \
+  apply /workspace/project/repoforge.yaml \
   --repo acme/example-project
 ```
 
@@ -406,10 +414,8 @@ riutilizzano la sessione memorizzata nel volume.
 
 ### Usare una configurazione esterna
 
-L'immagine contiene la configurazione presente al momento della build, ma
-RepoForge può usare il manifest e i file YAML presenti direttamente in un
-altro progetto. Non è necessario copiarli nella directory `config/` di
-RepoForge né ricostruire l'immagine.
+RepoForge legge il manifest e i file YAML dal progetto montato all'avvio.
+Puoi usare la stessa immagine per progetti e configurazioni diversi.
 
 Per esempio, il progetto esterno può avere questa struttura:
 
